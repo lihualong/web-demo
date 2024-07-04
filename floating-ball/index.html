@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <style>
+        .floating-ball{
+            position: fixed;
+        }
+        .box{
+            background-color: red;
+            width: 100px;
+            height: 100px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="floating-ball">
+        <div class="box">
+
+        </div>
+    </div>
+    <script>
+        class FloatingBall{
+            #ballRef
+            #dragging = false
+            #position = {top: 0, left: 0}
+            #bounds = {top: 0, left: 0, right: window.innerWidth, bottom: window.innerHeight}
+            #edgeSnap = 10
+            #restrictEdges = []
+            constructor(el, config) {
+                const elDom = document.querySelector(el)
+                if (elDom){
+                    this.#ballRef = elDom
+                    this.#position = config.position || this.#position
+                    this.#bounds = config.bounds || this.#bounds
+                    this.#edgeSnap = config.edgeSnap
+                    this.#restrictEdges = config.restrictEdges || []
+                    this.#initPositon()
+                    this.#addEvents()
+                }
+                   
+            }
+            #initPositon() {
+               const containerWidth = this.#ballRef.offsetWidth
+               const containerHeight = this.#ballRef.offsetHeight
+               let top =
+                this.#position.top !== undefined
+                    ? this.#position.top
+                    : this.#position.bottom !== undefined
+                    ? this.#bounds.bottom - containerHeight - this.#position.bottom
+                    : 0
+                let left =
+                this.#position.left !== undefined
+                    ? this.#position.left
+                    : this.#position.right !== undefined
+                    ? this.#bounds.right - containerWidth - this.#position.right
+                    : 0
+    
+                // Ensure position is within bounds
+                top = Math.max(this.#bounds.top, Math.min(top, this.#bounds.bottom - containerHeight))
+                left = Math.max(this.#bounds.left, Math.min(left, this.#bounds.right - containerWidth))
+                this.#setPosition(left, top)    
+            }
+            #setPosition(left, top) {
+                this.#ballRef.setAttribute('style', `left:${left}px;top:${top}px;`);
+            }
+            #handleMove = (clientX, clientY) => {
+                const containerWidth = this.#ballRef.offsetWidth
+                const containerHeight = this.#ballRef.offsetHeight
+                const bounds = this.#bounds
+                const edgeSnap = this.#edgeSnap
+                const restrictEdges = this.#restrictEdges
+                let newTop = clientY - containerHeight / 2
+                let newLeft = clientX - containerWidth / 2
+
+                // Boundary constraints
+                newTop = Math.max(bounds.top, Math.min(newTop, bounds.bottom - containerHeight))
+                newLeft = Math.max(bounds.left, Math.min(newLeft, bounds.right - containerWidth))
+
+                // Edge snapping
+                if (Math.abs(newTop - bounds.top) < edgeSnap) {newTop = bounds.top}
+                if (Math.abs(newTop - (bounds.bottom - containerHeight)) < edgeSnap)
+                    {newTop = bounds.bottom - containerHeight}
+                if (Math.abs(newLeft - bounds.left) < edgeSnap) {newLeft = bounds.left}
+                if (Math.abs(newLeft - (bounds.right - containerWidth)) < edgeSnap)
+                    {newLeft = bounds.right - containerWidth}
+
+                // Restrict movement to specific edges
+                if (restrictEdges.includes('top')) {newTop = bounds.top}
+                if (restrictEdges.includes('bottom')) {newTop = bounds.bottom - containerHeight}
+                if (restrictEdges.includes('left')) {newLeft = bounds.left}
+                if (restrictEdges.includes('right')) {newLeft = bounds.right - containerWidth}
+
+                this.#setPosition(newLeft , newTop)
+            }
+            #handleMouseMove = (e) => {
+                if (!this.#dragging) {
+                    return
+                }
+                this.#handleMove(e.clientX, e.clientY)
+            }
+            #handleMouseUp = () =>{
+                this.#dragging = false
+            }
+            #handleMouseDown = () => {
+                this.#dragging = true
+            }
+            #handleTouchMove =(e) => {
+                if (!this.#dragging) {return}
+                e.preventDefault() // Prevent scrolling behavior
+                this.#handleMove(e.touches[0].clientX, e.touches[0].clientY)
+            }
+            #handleTouchStart =(e)=>{
+                this.#dragging = true
+            }
+            #handleTouchEnd =()=>{
+                this.#dragging = false
+            }
+            #addEvents() {
+                this.#ballRef.addEventListener('mousedown', this.#handleMouseDown)
+                this.#ballRef.addEventListener('touchstart', this.#handleTouchStart)
+                document.addEventListener('mousemove', this.#handleMouseMove)
+                document.addEventListener('mouseup', this.#handleMouseUp)
+                document.addEventListener('touchmove', this.#handleTouchMove, { passive: false })
+                document.addEventListener('touchend', this.#handleTouchEnd)
+            }
+            #removeEvents() {
+                this.#ballRef.removeEventListener('mousedown', this.#handleMouseDown)
+                this.#ballRef.removeEventListener('touchstart', this.#handleTouchStart)
+                document.removeEventListener('mousemove', this.#handleMouseMove)
+                document.removeEventListener('mouseup', this.#handleMouseUp)
+                document.removeEventListener('touchmove', this.#handleTouchMove)
+                document.removeEventListener('touchend', this.#handleTouchEnd)
+            }
+            destroy() {
+                this.#ballRef = null
+                this.#removeEvents()
+            }
+    
+        }
+        const ball =  new FloatingBall('.floating-ball', {
+            position: {
+                top: 50,
+                right: 0
+            },
+            bounds: {
+                top: 30,
+                left: 30,
+                 right: window.innerWidth -30,
+                 bottom: window.innerHeight -30
+            },
+            edgeSnap: 10,
+            restrictEdges: ['left']
+        })
+       
+    </script>
+</body>
+</html>
